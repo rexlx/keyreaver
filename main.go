@@ -35,6 +35,7 @@ func main() {
 	}
 }
 
+// handles incoming requests to the cloud run service
 func handler(w http.ResponseWriter, r *http.Request) {
 	// default filename is key.txt
 	fn := os.Getenv("FNAME")
@@ -50,6 +51,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	// the `CHALLENGE` env var is passed from the cloud run console. I do this so that my
 	// private services can write their api keys to a bucket without having to store my gcp creds.
 	if in.TestPhrase != os.Getenv("CHALLENGE") {
+		// this branch handles unauthorized access
 		log.Println("failed access attempt", r.RemoteAddr)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -59,9 +61,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	// the remote service knows the passphrase, store their key in the bucket provided
 	log.Println("access authorized for", r.RemoteAddr)
 	ctx := context.Background()
-	err = uploadToGcs(ctx, in.Key, fn)
+	err = uploadToGCS(ctx, in.Key, fn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,6 +77,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// NewStorageClient returns a storage client
 func NewStorageClient(ctx context.Context) (*storage.Client, error) {
 	// ctx := context.Background()
 	client, err := storage.NewClient(ctx)
@@ -83,9 +87,10 @@ func NewStorageClient(ctx context.Context) (*storage.Client, error) {
 	return client, nil
 }
 
+// readJSON decodes the payload
 func readJSON(w http.ResponseWriter, r *http.Request, data interface{}) error {
 	log.Println("reading input")
-	// 666K
+	// 666K limit is an arbitrary value
 	maxBytes := 681984
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 	dec := json.NewDecoder(r.Body)
@@ -103,12 +108,12 @@ func readJSON(w http.ResponseWriter, r *http.Request, data interface{}) error {
 	return nil
 }
 
-func uploadToGcs(ctx context.Context, obj string, fname string) error {
+// uploadToGCS writes a string to a bucket
+func uploadToGCS(ctx context.Context, obj string, fname string) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
 	store := os.Getenv("STORAGE")
-	log.Println("bucket:", store)
 	bucket, err := NewStorageClient(ctx)
 	if err != nil {
 		log.Fatalln(err)
