@@ -36,6 +36,10 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	fn := os.Getenv("FNAME")
+	if fn == "" {
+		fn = "key.txt"
+	}
 	var in key
 
 	err := readJSON(w, r, &in)
@@ -44,11 +48,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if in.TestPhrase != os.Getenv("CHALLENGE") {
-		log.Fatalln("failed access attempt", r.RemoteAddr)
+		log.Println("failed access attempt", r.RemoteAddr)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, err = w.Write([]byte("Service Unavailable"))
+		if err != nil {
+			log.Println("failed to write the response", err)
+		}
+		return
 	}
 	log.Println("access authorized for", r.RemoteAddr)
 	ctx := context.Background()
-	err = uploadToGcs(ctx, in.Key)
+	err = uploadToGcs(ctx, in.Key, os.Getenv("FNAME"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,7 +76,7 @@ func NewStorageClient(ctx context.Context) (*storage.Client, error) {
 	// ctx := context.Background()
 	client, err := storage.NewClient(ctx)
 	if err != nil {
-		return &storage.Client{}, fmt.Errorf("failed to create storage instance")
+		return &storage.Client{}, fmt.Errorf("failed to create storage instance: %v", err)
 	}
 	return client, nil
 }
@@ -90,7 +101,7 @@ func readJSON(w http.ResponseWriter, r *http.Request, data interface{}) error {
 	return nil
 }
 
-func uploadToGcs(ctx context.Context, obj string) error {
+func uploadToGcs(ctx context.Context, obj string, fname string) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
@@ -101,7 +112,7 @@ func uploadToGcs(ctx context.Context, obj string) error {
 		log.Fatalln(err)
 	}
 
-	b := bucket.Bucket(store).Object("key.txt").NewWriter(ctx)
+	b := bucket.Bucket(store).Object(fname).NewWriter(ctx)
 	b.ContentType = "text/plain"
 	b.Metadata = map[string]string{
 		"x-goog-meta-app": "application-tag",
