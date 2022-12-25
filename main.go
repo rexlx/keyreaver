@@ -77,8 +77,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// NewStorageClient returns a storage client
-func NewStorageClient(ctx context.Context) (*storage.Client, error) {
+// newStorageClient returns a storage client
+func newStorageClient(ctx context.Context) (*storage.Client, error) {
 	// ctx := context.Background()
 	client, err := storage.NewClient(ctx)
 	if err != nil {
@@ -114,7 +114,7 @@ func uploadToGCS(ctx context.Context, obj string, fname string) error {
 	defer cancel()
 
 	store := os.Getenv("STORAGE")
-	bucket, err := NewStorageClient(ctx)
+	bucket, err := newStorageClient(ctx)
 	if err != nil {
 		log.Fatalln(err)
 	}
