@@ -16,7 +16,7 @@ type payload struct {
 
 func TestHandler(t *testing.T) {
 	os.Setenv("CHALLENGE", "deny all")
-	os.Setenv("STORAGE", "nullferatu")
+	os.Setenv("STORAGE", "your-bucket")
 	os.Setenv("FNAME", "tests.txt")
 	tests := []struct {
 		name   string
