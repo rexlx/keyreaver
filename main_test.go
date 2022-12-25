@@ -9,11 +9,6 @@ import (
 	"testing"
 )
 
-type payload struct {
-	TestPhrase string `json:"test_phrase"`
-	Key        string `json:"key"`
-}
-
 func TestHandler(t *testing.T) {
 	os.Setenv("CHALLENGE", "deny all")
 	os.Setenv("STORAGE", "nullferatu")

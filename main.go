@@ -14,7 +14,7 @@ import (
 	"cloud.google.com/go/storage"
 )
 
-type key struct {
+type payload struct {
 	TestPhrase string `json:"test_phrase"`
 	Key        string `json:"key"`
 }
@@ -36,17 +36,19 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	// default filename is key.txt
 	fn := os.Getenv("FNAME")
 	if fn == "" {
 		fn = "key.txt"
 	}
-	var in key
+	var in payload
 
 	err := readJSON(w, r, &in)
 	if err != nil {
 		return
 	}
-
+	// the `CHALLENGE` env var is passed from the cloud run console. I do this so that my
+	// private services can write their api keys to a bucket without having to store my gcp creds.
 	if in.TestPhrase != os.Getenv("CHALLENGE") {
 		log.Println("failed access attempt", r.RemoteAddr)
 		w.Header().Set("Content-Type", "application/json")
@@ -59,7 +61,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("access authorized for", r.RemoteAddr)
 	ctx := context.Background()
-	err = uploadToGcs(ctx, in.Key, os.Getenv("FNAME"))
+	err = uploadToGcs(ctx, in.Key, fn)
 	if err != nil {
 		log.Fatal(err)
 	}
