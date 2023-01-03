@@ -39,6 +39,7 @@ func main() {
 func handler(w http.ResponseWriter, r *http.Request) {
 	var in payload
 
+	// we dont really want empty file names
 	if in.Name == "" {
 		in.Name = "key.txt"
 	}
@@ -46,7 +47,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+	// probably no need to log this but, hey
 	log.Println("access from", r.RemoteAddr)
+
+	// upload the key with the supplied name
 	ctx := context.Background()
 	err = uploadToGCS(ctx, in.Key, in.Name)
 	if err != nil {
@@ -93,7 +97,7 @@ func readJSON(w http.ResponseWriter, r *http.Request, data interface{}) error {
 }
 
 // uploadToGCS writes a string to a bucket
-func uploadToGCS(ctx context.Context, obj string, fname string) error {
+func uploadToGCS(ctx context.Context, obj, fname string) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
