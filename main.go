@@ -15,8 +15,8 @@ import (
 )
 
 type payload struct {
-	TestPhrase string `json:"test_phrase"`
-	Key        string `json:"key"`
+	Name string `json:"name"`
+	Key  string `json:"key"`
 }
 
 func main() {
@@ -37,34 +37,18 @@ func main() {
 
 // handles incoming requests to the cloud run service
 func handler(w http.ResponseWriter, r *http.Request) {
-	// default filename is key.txt
-	fn := os.Getenv("FNAME")
-	if fn == "" {
-		fn = "key.txt"
-	}
 	var in payload
 
+	if in.Name == "" {
+		in.Name = "key.txt"
+	}
 	err := readJSON(w, r, &in)
 	if err != nil {
 		return
 	}
-	// the `CHALLENGE` env var is passed from the cloud run console. I do this so that my
-	// private services can write their api keys to a bucket without having to store my gcp creds.
-	if in.TestPhrase != os.Getenv("CHALLENGE") {
-		// this branch handles unauthorized access
-		log.Println("failed access attempt", r.RemoteAddr)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
-		_, err = w.Write([]byte("Service Unavailable"))
-		if err != nil {
-			log.Println("failed to write the response", err)
-		}
-		return
-	}
-	// the remote service knows the passphrase, store their key in the bucket provided
-	log.Println("access authorized for", r.RemoteAddr)
+	log.Println("access from", r.RemoteAddr)
 	ctx := context.Background()
-	err = uploadToGCS(ctx, in.Key, fn)
+	err = uploadToGCS(ctx, in.Key, in.Name)
 	if err != nil {
 		log.Fatal(err)
 	}
