@@ -10,9 +10,7 @@ import (
 )
 
 func TestHandler(t *testing.T) {
-	os.Setenv("CHALLENGE", "deny all")
-	os.Setenv("STORAGE", "nullferatu")
-	os.Setenv("FNAME", "tests.txt")
+	os.Setenv("STORAGE", "BUCKET_HERE")
 	tests := []struct {
 		name   string
 		phrase string
@@ -23,19 +21,11 @@ func TestHandler(t *testing.T) {
 			phrase: "gg7gf7f7vgg",
 			key:    "key reaved",
 		},
-		{
-			name:   "unauthorized",
-			phrase: "hehe",
-			key:    "Service Unavailable",
-		},
 	}
 	for _, tc := range tests {
 		var pl payload
-		if tc.name == "authorized" {
-			os.Setenv("CHALLENGE", tc.phrase)
-		}
-		pl.TestPhrase = tc.phrase
 		pl.Key = "no key here just a test"
+		pl.Name = "testz.txt"
 		out, err := json.Marshal(pl)
 		if err != nil {
 			t.Log(err)
